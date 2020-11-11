@@ -6,7 +6,7 @@ public class Runner {
 	private static final int numSimulation = 1000;
 	private static final int maxNumDelay = 1000;
 
-	private static ArrayList<Transfer> transfers;
+	private static ArrayList<ArrayList<Transfer>> allTransfers;
 	private static double maxSeverity;
 	private static int maxDeaths;
 
@@ -28,6 +28,7 @@ public class Runner {
 
 		int numAmbulances;
 
+		ArrayList<Transfer> transfers;
 		int deaths;
 		SystemState systemState;
 		StatisticalCounters statisticalCounters;
@@ -290,6 +291,7 @@ public class Runner {
 			avgDelay += statisticalCounters.totalDelay / statisticalCounters.numDelay;
 			avgQueueLength += statisticalCounters.areaQt / timeProfile.currClock;
 			avgPercUtilization += (statisticalCounters.areaBt / timeProfile.currClock) * 100;
+			allTransfers.add(transfers);
 		}
 
 		void reportGenerator() {
@@ -337,13 +339,14 @@ public class Runner {
 
 	private static class Channel2 {
 		int numBeds;
+		ArrayList<Transfer> transfers;
 
 		int deaths;
 		SystemState systemState;
 		StatisticalCounters statisticalCounters;
 		TimeProfile timeProfile;
 
-		double avgNumAmbulances;
+		double avgNumBeds;
 		double avgDelay;
 		double avgQueueLength;
 		double avgPercUtilization;
@@ -445,7 +448,6 @@ public class Runner {
 
 			Bed removePatient() {
 				Bed bed = timeProfile.nextDepartures.peek();
-				transfers.add(new Transfer(bed.departureTime, bed.patient.severity));
 				bed.patient = null;
 				if (customers.size() != 0) {
 					bed.admitPatient(customers.poll());
@@ -551,12 +553,11 @@ public class Runner {
 
 			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
+			Bed bed = systemState.addPatient();
 
-			if (timeProfile.arrivalPos == transfers.size()) {
+			if (timeProfile.arrivalPos == transfers.size() - 1) {
 				throw new ExitSimulationException();
 			}
-
-			Bed bed = systemState.addPatient();
 
 			timeProfile.updateForArrival(bed);
 			statisticalCounters.updateStatisticalCounters(bed, prevQueueLength, prevServerStatus);
@@ -569,26 +570,25 @@ public class Runner {
 
 			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
+			Bed bed = systemState.removePatient();
 
-			if (timeProfile.arrivalPos == transfers.size()) {
+			if (timeProfile.arrivalPos == transfers.size() - 1) {
 				throw new ExitSimulationException();
 			}
-
-			Bed bed = systemState.removePatient();
 
 			timeProfile.updateForDeparture(bed);
 			statisticalCounters.updateStatisticalCounters(bed, prevQueueLength, prevServerStatus);
 		}
 
 		void calculateCounters() {
-			avgNumAmbulances += numBeds;
+			avgNumBeds += numBeds;
 			avgDelay += statisticalCounters.totalDelay / statisticalCounters.numDelay;
 			avgQueueLength += statisticalCounters.areaQt / timeProfile.currClock;
 			avgPercUtilization += (statisticalCounters.areaBt / timeProfile.currClock) * 100;
 		}
 
 		void reportGenerator() {
-			avgNumAmbulances /= numSimulation;
+			avgNumBeds /= numSimulation;
 			avgDelay /= numSimulation;
 			avgQueueLength /= numSimulation;
 			avgPercUtilization /= numSimulation;
@@ -597,6 +597,7 @@ public class Runner {
 		void mainProgram() {
 			for (int i = 0; i < numSimulation; i++) {
 				numBeds = 1;
+				transfers = allTransfers.get(i);
 				while (true) {
 					initializationRoutine();
 					try {
@@ -622,7 +623,7 @@ public class Runner {
 
 		void print() {
 			System.out.println("Channel 2:-");
-			System.out.printf("Number of Beds:\t\t%.4f\n", avgNumAmbulances);
+			System.out.printf("Number of Beds:\t\t%.4f\n", avgNumBeds);
 			System.out.printf("Average Delay:\t\t%.4f\n", avgDelay);
 			System.out.printf("Average Queue Length:\t%.4f\n", avgQueueLength);
 			System.out.printf("Percentage Utilization:\t%.4f\n", avgPercUtilization);
@@ -634,6 +635,7 @@ public class Runner {
 	}
 
 	public static void run() {
+		allTransfers = new ArrayList<ArrayList<Transfer>>();
 		maxSeverity = 10;
 		maxDeaths = 5;
 
@@ -644,6 +646,7 @@ public class Runner {
 
 		Channel1 c1 = new Channel1(rateParameter, townRadius, maxInterArrivalTime, ambulanceSpeed);
 		c1.print();
+
 		Channel2 c2 = new Channel2();
 		c2.print();
 	}
