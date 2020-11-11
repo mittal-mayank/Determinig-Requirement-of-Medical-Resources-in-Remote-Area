@@ -70,13 +70,6 @@ public class Runner {
 			double delay;
 			double departureTime;
 
-			Ambulance() {
-				patient = null;
-				serviceTime = -1;
-				delay = -1;
-				departureTime = -1;
-			}
-
 			void admitPatient(Patient patient) {
 				this.patient = patient;
 				serviceTime = 2 * patient.distance / ambulanceSpeed;
@@ -140,10 +133,6 @@ public class Runner {
 				return null;
 			}
 
-			int queueLength() {
-				return customers.size();
-			}
-
 			double serverStatus() {
 				int total = 0;
 				for (Ambulance ambulance : servers) {
@@ -172,13 +161,6 @@ public class Runner {
 			double areaQt;
 			double areaBt;
 
-			StatisticalCounters() {
-				numDelay = 0;
-				totalDelay = 0;
-				areaBt = 0;
-				areaQt = 0;
-			}
-
 			void updateStatisticalCounters(Ambulance ambulance, int prevQueueLength, double prevServerStatus) {
 				if (ambulance != null) {
 					numDelay++;
@@ -198,7 +180,6 @@ public class Runner {
 
 			TimeProfile() {
 				prevClock = -1;
-				currClock = 0;
 				nextArrival = uniformLibraryRoutine() * maxInterArrivalTime;
 				nextDepartures = new PriorityQueue<Ambulance>(new Comparator<Ambulance>() {
 
@@ -216,7 +197,7 @@ public class Runner {
 				});
 			}
 
-			int updateClocks() {
+			double updateClocks() {
 				prevClock = currClock;
 				if (nextDepartures.size() == 0) {
 					currClock = nextArrival;
@@ -224,7 +205,7 @@ public class Runner {
 				}
 				double nextDeparture = nextDepartures.peek().departureTime;
 				currClock = Math.min(nextArrival, nextDeparture);
-				return (int) (nextArrival - nextDeparture);
+				return nextArrival - nextDeparture;
 			}
 
 			void updateForArrival(Ambulance ambulance) {
@@ -258,7 +239,7 @@ public class Runner {
 			timeProfile = new TimeProfile();
 		}
 
-		int timingRoutine() {
+		double timingRoutine() {
 			return timeProfile.updateClocks();
 		}
 
@@ -267,7 +248,7 @@ public class Runner {
 				throw new ResetSimulationException();
 			}
 
-			int prevQueueLength = systemState.queueLength();
+			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
 			Ambulance ambulance = systemState.addPatient();
 
@@ -284,7 +265,7 @@ public class Runner {
 				throw new ResetSimulationException();
 			}
 
-			int prevQueueLength = systemState.queueLength();
+			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
 			Ambulance ambulance = systemState.removePatient();
 
@@ -325,7 +306,7 @@ public class Runner {
 					initializationRoutine();
 					try {
 						while (true) {
-							int event = timingRoutine();
+							double event = timingRoutine();
 							if (event < 0) {
 								arrivalEventRoutine();
 							} else {
@@ -362,7 +343,7 @@ public class Runner {
 		StatisticalCounters statisticalCounters;
 		TimeProfile timeProfile;
 
-		double avgNumBeds;
+		double avgNumAmbulances;
 		double avgDelay;
 		double avgQueueLength;
 		double avgPercUtilization;
@@ -388,13 +369,6 @@ public class Runner {
 			double serviceTime;
 			double delay;
 			double departureTime;
-
-			Bed() {
-				patient = null;
-				serviceTime = -1;
-				delay = -1;
-				departureTime = -1;
-			}
 
 			void admitPatient(Patient patient) {
 				this.patient = patient;
@@ -459,10 +433,6 @@ public class Runner {
 				return null;
 			}
 
-			int queueLength() {
-				return customers.size();
-			}
-
 			double serverStatus() {
 				int total = 0;
 				for (Bed bed : servers) {
@@ -475,6 +445,7 @@ public class Runner {
 
 			Bed removePatient() {
 				Bed bed = timeProfile.nextDepartures.peek();
+				transfers.add(new Transfer(bed.departureTime, bed.patient.severity));
 				bed.patient = null;
 				if (customers.size() != 0) {
 					bed.admitPatient(customers.poll());
@@ -489,13 +460,6 @@ public class Runner {
 			double totalDelay;
 			double areaQt;
 			double areaBt;
-
-			StatisticalCounters() {
-				numDelay = 0;
-				totalDelay = 0;
-				areaBt = 0;
-				areaQt = 0;
-			}
 
 			void updateStatisticalCounters(Bed bed, int prevQueueLength, double prevServerStatus) {
 				if (bed != null) {
@@ -517,8 +481,6 @@ public class Runner {
 
 			TimeProfile() {
 				prevClock = -1;
-				currClock = 0;
-				arrivalPos = 0;
 				nextArrival = transfers.get(arrivalPos).arrivalTime;
 				nextDepartures = new PriorityQueue<Bed>(new Comparator<Bed>() {
 
@@ -587,19 +549,17 @@ public class Runner {
 				throw new ResetSimulationException();
 			}
 
-			int prevQueueLength = systemState.queueLength();
+			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
+
+			if (timeProfile.arrivalPos == transfers.size()) {
+				throw new ExitSimulationException();
+			}
+
 			Bed bed = systemState.addPatient();
 
 			timeProfile.updateForArrival(bed);
 			statisticalCounters.updateStatisticalCounters(bed, prevQueueLength, prevServerStatus);
-
-//			if (statisticalCounters.numDelay == transfers.size()) {
-//				throw new ExitSimulationException();
-//			}
-			if (timeProfile.arrivalPos == transfers.size() - 1) {
-				throw new ExitSimulationException();
-			}
 		}
 
 		void departureEventRoutine() throws ResetSimulationException, ExitSimulationException {
@@ -607,30 +567,28 @@ public class Runner {
 				throw new ResetSimulationException();
 			}
 
-			int prevQueueLength = systemState.queueLength();
+			int prevQueueLength = systemState.customers.size();
 			double prevServerStatus = systemState.serverStatus();
+
+			if (timeProfile.arrivalPos == transfers.size()) {
+				throw new ExitSimulationException();
+			}
+
 			Bed bed = systemState.removePatient();
 
 			timeProfile.updateForDeparture(bed);
 			statisticalCounters.updateStatisticalCounters(bed, prevQueueLength, prevServerStatus);
-
-//			if (statisticalCounters.numDelay == transfers.size()) {
-//				throw new ExitSimulationException();
-//			}
-			if (timeProfile.arrivalPos == transfers.size() - 1) {
-				throw new ExitSimulationException();
-			}
 		}
 
 		void calculateCounters() {
-			avgNumBeds += numBeds;
+			avgNumAmbulances += numBeds;
 			avgDelay += statisticalCounters.totalDelay / statisticalCounters.numDelay;
 			avgQueueLength += statisticalCounters.areaQt / timeProfile.currClock;
 			avgPercUtilization += (statisticalCounters.areaBt / timeProfile.currClock) * 100;
 		}
 
 		void reportGenerator() {
-			avgNumBeds /= numSimulation;
+			avgNumAmbulances /= numSimulation;
 			avgDelay /= numSimulation;
 			avgQueueLength /= numSimulation;
 			avgPercUtilization /= numSimulation;
@@ -664,19 +622,15 @@ public class Runner {
 
 		void print() {
 			System.out.println("Channel 2:-");
-			System.out.printf("Number of Beds:\t\t%.4f\n", avgNumBeds);
+			System.out.printf("Number of Beds:\t\t%.4f\n", avgNumAmbulances);
 			System.out.printf("Average Delay:\t\t%.4f\n", avgDelay);
 			System.out.printf("Average Queue Length:\t%.4f\n", avgQueueLength);
 			System.out.printf("Percentage Utilization:\t%.4f\n", avgPercUtilization);
-			System.out.println(timeProfile.arrivalPos);
-			System.out.println(timeProfile.nextDepartures.size());
-			System.out.println(statisticalCounters.numDelay);
 			System.out.println();
 		}
 	}
 
 	private Runner() {
-
 	}
 
 	public static void run() {
