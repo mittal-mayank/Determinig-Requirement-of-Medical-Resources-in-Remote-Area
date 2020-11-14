@@ -651,7 +651,27 @@ public class Runner {
 		c2.print();
 	}
 
+	public static void example() {
+		maxSeverity = 10;
+		maxDeaths = 5;
+
+		double rateParameter = 4;
+		double townRadius = 30;
+		double ambulanceSpeed = 30;
+
+		for (double i = 0.1; i <= 2.01; i += 0.01) {
+			allTransfers = new ArrayList<ArrayList<Transfer>>();
+
+			double maxInterArrivalTime = i;
+
+			Channel1 c1 = new Channel1(rateParameter, townRadius, maxInterArrivalTime, ambulanceSpeed);
+			Channel2 c2 = new Channel2();
+			System.out.printf("%.4f\t%.4f\t%.4f\n", maxInterArrivalTime, c1.avgNumAmbulances, c2.avgNumBeds);
+		}
+	}
+
 	public static void main(String[] args) {
-		Runner.run();
+//		Runner.run();
+		Runner.example();
 	}
 }
