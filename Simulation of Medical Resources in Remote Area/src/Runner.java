@@ -666,12 +666,14 @@ public class Runner {
 
 			Channel1 c1 = new Channel1(rateParameter, townRadius, maxInterArrivalTime, ambulanceSpeed);
 			Channel2 c2 = new Channel2();
-			System.out.printf("%.4f\t%.4f\t%.4f\n", maxInterArrivalTime, c1.avgNumAmbulances, c2.avgNumBeds);
+			System.out.printf("%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f\n", maxInterArrivalTime,
+					c1.avgNumAmbulances, c1.avgDelay, c1.avgPercUtilization, c1.avgQueueLength, c2.avgNumBeds,
+					c2.avgDelay, c2.avgPercUtilization, c2.avgQueueLength);
 		}
 	}
 
 	public static void main(String[] args) {
-//		Runner.run();
-		Runner.example();
+		Runner.run();
+//		Runner.example();
 	}
 }
