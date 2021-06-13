@@ -13,7 +13,7 @@ The model is a Discrete Event Simulation (DES) model implemented via two consecu
 
 <p>
     <div align="center">
-        <img src="./images/flow-chart.png" width="40%">
+        <img src="./images/flow-chart.jpg" width="40%">
     </div>
     <div align="center">
         <i>Fig.</i>
