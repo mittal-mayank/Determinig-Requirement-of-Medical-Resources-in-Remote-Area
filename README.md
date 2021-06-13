@@ -4,6 +4,8 @@ This project was made for the evaluation of the innovative work for the subject 
 
 It aims to simulate the medical system in a small remote area to determine the number of beds and ambulances required to provide timely access to health care so that deaths due to such delays can be minimzed.
 
+It also tries gather data around various statistical counters and analyze their relationships with the input parameters describing the remote area.
+
 # Model
 
 The model is a Discrete Event Simulation (DES) model implemented via two consecutive queueing channels following the priority queue discipline:
